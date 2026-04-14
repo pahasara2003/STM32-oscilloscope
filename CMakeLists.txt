@@ -45,7 +45,11 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
-
+  Core/Src/ILI9341_GFX.c
+    Core/Src/ILI9341_STM32_Driver.c
+    Core/Src/fonts.c
+   Core/Src/AD983x.c
+   Core/Inc/AD983x.h
 )
 
 # Add include paths
