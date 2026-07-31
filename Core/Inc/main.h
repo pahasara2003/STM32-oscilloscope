@@ -47,6 +47,18 @@ extern "C" {
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
 
+#define BUF_SIZE 512
+#define SCREEN_W 320
+#define SCREEN_H 240
+
+#define PLOT_X0 30
+#define PLOT_Y0 15
+#define PLOT_X1 320
+#define PLOT_Y1 220
+#define PLOT_W (PLOT_X1 - PLOT_X0) /* 289 px wide */
+#define PLOT_H (PLOT_Y1 - PLOT_Y0) /* 219 px tall */
+#define ADC_MAX 4095
+
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/

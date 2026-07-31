@@ -1,73 +1,90 @@
 cmake_minimum_required(VERSION 3.22)
 
-#
-# This file is generated only once,
-# and is not re-generated if converter is called multiple times.
-#
-# User is free to modify the file as much as necessary
-#
-
-# Setup compiler settings
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
 
-
-# Define the build type
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
-# Set the project name
 set(CMAKE_PROJECT_NAME oscilloscope)
-
-# Enable compile command to ease indexing with e.g. clangd
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
-# Core project settings
 project(${CMAKE_PROJECT_NAME})
 message("Build type: " ${CMAKE_BUILD_TYPE})
 
-# Enable CMake support for ASM and C languages
 enable_language(C ASM)
 
-# Create an executable object type
 add_executable(${CMAKE_PROJECT_NAME})
 
-# Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)
 
-# Link directories setup
-target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
-    # Add user defined library search paths
-
+target_compile_options(oscilloscope PRIVATE
+    -Os
+    -flto
 )
 
-# Add sources to executable
+target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE)
+
+# ── CMSIS-DSP ────────────────────────────────────────────────────────────────
+# Define root FIRST, then use it
+#──────────────────────────────────────────────────────────────────────────
+
+set(CMSIS_DSP_ROOT ${CMAKE_SOURCE_DIR}/Middlewares/CMSIS-DSP)
+
+set(CMSIS_DSP_SOURCES
+    # RFFT (real FFT) - note: init is a SEPARATE file in your version
+    ${CMSIS_DSP_ROOT}/Source/TransformFunctions/arm_rfft_fast_f32.c
+    ${CMSIS_DSP_ROOT}/Source/TransformFunctions/arm_rfft_fast_init_f32.c
+
+    # CFFT (complex FFT) - called internally by rfft
+    ${CMSIS_DSP_ROOT}/Source/TransformFunctions/arm_cfft_f32.c
+    ${CMSIS_DSP_ROOT}/Source/TransformFunctions/arm_cfft_init_f32.c
+    ${CMSIS_DSP_ROOT}/Source/TransformFunctions/arm_cfft_radix8_f32.c
+    ${CMSIS_DSP_ROOT}/Source/TransformFunctions/arm_cfft_radix2_f32.c
+    ${CMSIS_DSP_ROOT}/Source/TransformFunctions/arm_cfft_radix4_f32.c
+
+    # Bit reversal tables
+    ${CMSIS_DSP_ROOT}/Source/TransformFunctions/arm_bitreversal2.c
+    ${CMSIS_DSP_ROOT}/Source/TransformFunctions/arm_bitreversal.c
+
+    # Common twiddle/constant tables
+    ${CMSIS_DSP_ROOT}/Source/CommonTables/arm_const_structs.c
+    ${CMSIS_DSP_ROOT}/Source/CommonTables/arm_common_tables.c
+
+    # Complex magnitude - used by arm_cmplx_mag_f32
+    ${CMSIS_DSP_ROOT}/Source/ComplexMathFunctions/arm_cmplx_mag_f32.c
+)
+
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
-  Core/Src/ILI9341_GFX.c
+    Core/Src/ILI9341_GFX.c
     Core/Src/ILI9341_STM32_Driver.c
+        Core/Src/time_domain.c
     Core/Src/fonts.c
-   Core/Src/AD983x.c
-   Core/Inc/AD983x.h
+       Core/Src/fft_display.c
+    Core/Inc/fft_display.h
+        Core/Inc/time_domain.h
+    Core/Inc/ILI9341_GFX.h
+    Core/Inc/ILI9341_STM32_Driver.h
+    Core/Inc/fonts.h
+    ${CMSIS_DSP_SOURCES}         # <-- actually add the sources
 )
 
-# Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
-    # Add user defined include paths
+    ${CMSIS_DSP_ROOT}/Include
+        ${CMSIS_DSP_ROOT}/PrivateInclude   # <-- add this line
+
 )
 
-# Add project symbols (macros)
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
-    # Add user defined symbols
+    ARM_MATH_CM4                 # required by arm_math.h
+    __FPU_PRESENT=1              # enables FPU code paths
 )
 
-# Remove wrong libob.a library dependency when using cpp files
 list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_LIBRARIES ob)
 
-# Add linked libraries
 target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32cubemx
-
-    # Add user defined libraries
+    -lm                          # link libm for math builtins
 )
